@@ -4,7 +4,6 @@ namespace App\Repositories\Implements;
 
 use Illuminate\Database\Eloquent\Model;
 use App\Repositories\Interfaces\IBaseRepository;
-
 class BaseRepository implements IBaseRepository{
 
     protected $model;
@@ -31,9 +30,12 @@ class BaseRepository implements IBaseRepository{
 
     public function find($id, $columns = ['*'])
     {
+        return $this->model->find($id, $columns);
+    }
+    public function findOrFail($id, $columns = ['*'])
+    {
         return $this->model->findOrFail($id, $columns);
     }
-
     public function findMany($ids, $columns = ['*'])
     {
         return $this->model->findMany($ids, $columns);
@@ -41,7 +43,8 @@ class BaseRepository implements IBaseRepository{
 
     public function getById($id)
     {
-        return $this->model->findOrFail($id);
+        $object = $this->model->find($id);
+        return $object;
     }
 
     public function destroy($value)
@@ -51,7 +54,7 @@ class BaseRepository implements IBaseRepository{
 
     public function delete($id)
     {
-        $object = $this->model->findOrFail($id);
+        $object = $this->model->find($id);
         return $object->delete();
     }
 

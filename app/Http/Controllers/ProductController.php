@@ -1,10 +1,14 @@
 <?php
 
 namespace App\Http\Controllers;
-
+use App\Http\Requests;
 use Illuminate\Http\Request;
 use App\Models\Product;
+use App\Http\Responses\SuccessCollectionResponse;
+use App\Http\Responses\SuccessEntityResponse;
+use App\Http\Responses\ErrorResponse;
 use App\Repositories\Interfaces\IProductRepository;
+use Illuminate\Http\JsonResponse;
 class ProductController extends Controller
 {
     protected $product_repo;
@@ -20,10 +24,9 @@ class ProductController extends Controller
      */
     public function index(Request $request)
     {
-        //
-        // $request->validate(['limit'=>'number']);
-        // return $this->product_repo->paginate($request['limit'] ?? 10);
-        return $this->product_repo->getAll();
+        $rs = $this->product_repo->paginate($request['limit'] ?? 10)->toArray();
+        return SuccessCollectionResponse::createResponse($rs,200);
+       ;
     }
 
     /**
@@ -42,11 +45,11 @@ class ProductController extends Controller
             'name' => 'required|max:200',
             'branch' => 'required|max:50',
             'description'=>'required',
-            'slug'=>'required|max:255'
+            'slug'=>'required|max:255|unique:products'
         ]);
         $rs = Product::create(['name'=>$request['name'], 'branch'=>$request['branch'], 
         'description'=>$request['description'], 'slug'=>$request['slug']]);
-        return response($rs,200);
+        return  SuccessEntityResponse::createResponse($rs,220);
     }
 
     /**
@@ -55,9 +58,11 @@ class ProductController extends Controller
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function show($id)
+    public function show(Request $request,$id)
     {
-        return $this->product_repo->find(2);
+        $product = $this->product_repo->findOrFail($id);
+        // if(!$product) return ErrorResponse::createResponse('not found');
+        return SuccessEntityResponse::createResponse($product);
     }
 
     /**
