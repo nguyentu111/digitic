@@ -1,0 +1,6 @@
+created:
+    - database/factories/PostFactory.php
+    - database/migrations/2023_06_13_064111_create_posts_table.php
+    - app/Models/Post.php
+models:
+    Post: { title: 'string:400', content: longtext, published_at: 'nullable timestamp', author_id: 'id:user' }

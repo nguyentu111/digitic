@@ -13,10 +13,19 @@ class CreateAllTable extends Migration
      */
     public function up()
     {
+        Schema::create('users', function (Blueprint $table) {
+            $table->id();
+            $table->string('name', 50);
+            $table->mediumText('email');
+            $table->string('provider', 45)->nullable();
+            $table->integer('provider_id')->nullable();
+            $table->string('access_token', 405)->nullable();
+            $table->string('session_token', 405)->nullable();
+        });
         Schema::create('products', function (Blueprint $table) {
             $table->id();
             $table->string('name',200);
-            $table->string('branch',50);
+            $table->string('brand',50);
             $table->text("description");
             $table->string("slug",255);
             $table->softDeletes($column = 'deleted_at');
@@ -113,6 +122,9 @@ class CreateAllTable extends Migration
         Schema::table('order_details',function (Blueprint $table){
             $table->foreign('review_id')->references('id')->on('reviews');
         });
+        Schema::table('products', function (Blueprint $table) {
+            $table->string("slug",255)->unique()->change();
+        });
     }
 
     /**
@@ -122,17 +134,17 @@ class CreateAllTable extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('products');
-        Schema::dropIfExists('sizes');
-        Schema::dropIfExists('collections');
-        Schema::dropIfExists('tags');
-        Schema::dropIfExists('product_tags');
-        Schema::dropIfExists('colors');
-        Schema::dropIfExists('pictures');
-        Schema::dropIfExists('product_details');
-        Schema::dropIfExists('sales');
-        Schema::dropIfExists('orders');
-        Schema::dropIfExists('order_details');
-        Schema::dropIfExists('reviews');
+        // Schema::dropIfExists('products');
+        // Schema::dropIfExists('sizes');
+        // Schema::dropIfExists('collections');
+        // Schema::dropIfExists('tags');
+        // Schema::dropIfExists('product_tags');
+        // Schema::dropIfExists('colors');
+        // Schema::dropIfExists('pictures');
+        // Schema::dropIfExists('product_details');
+        // Schema::dropIfExists('sales');
+        // Schema::dropIfExists('orders');
+        // Schema::dropIfExists('order_details');
+        // Schema::dropIfExists('reviews');
     }
 }

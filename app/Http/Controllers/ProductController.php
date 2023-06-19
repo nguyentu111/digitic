@@ -8,13 +8,25 @@ use App\Http\Responses\SuccessCollectionResponse;
 use App\Http\Responses\SuccessEntityResponse;
 use App\Http\Responses\ErrorResponse;
 use App\Repositories\Interfaces\IProductRepository;
+use App\Repositories\Interfaces\ITagRepository;
+use App\Repositories\Interfaces\ISuccessCollectionResponse;
+use App\Repositories\Interfaces\ISuccessEntityResponse;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
+use App\Http\Requests\UpdateProductRequest;
 class ProductController extends Controller
 {
-    protected $product_repo;
+    protected $productRepo;
+    protected $tagRepo;
+    protected $successCollectionResponse;
+    protected $successEntityResponse;
     
-    public function __construct(IProductRepository $product_repo){
-        return $this->product_repo = $product_repo;
+    public function __construct(IProductRepository $productRepo,ITagRepository $tagRepo,ISuccessCollectionResponse $successCollectionResponse,
+    ISuccessEntityResponse $successEntityResponse){
+        $this->productRepo = $productRepo;
+        $this->tagRepo = $tagRepo;
+        $this->successCollectionResponse = $successCollectionResponse;
+        $this->successEntityResponse = $successEntityResponse;
     }
 
     /**
@@ -24,9 +36,25 @@ class ProductController extends Controller
      */
     public function index(Request $request)
     {
-        $rs = $this->product_repo->paginate($request['limit'] ?? 10)->toArray();
-        return SuccessCollectionResponse::createResponse($rs,200);
-       ;
+        $validated = $request->validate([
+            'includes' => 'array|max:5',
+            'includes.*'=>'in:tag,detail,all,picture,sale',
+            'limit' => 'int',
+            'page' => 'int',
+            'sort_by' => 'in:best_selling,title_ascending,title_descending,price_ascending,price_descending,created_ascending,created_descending',
+            'avalibylities' => 'array|max:2',
+            'avalibylities.*' => 'in:1,0',
+            'colors' => 'array',
+            'colors.*' => 'int|exists:colors,id' ,
+            'sizes' => 'array|max:5',
+            'sizes.*' => 'in:S,M,L,XL,XXL',
+            'tags' => 'array',
+            'tags.*' => 'required|string|exists:tags,name'
+
+
+        ]);
+        $rs = $this->productRepo->getAllProduct($request->all());
+        return $this->successCollectionResponse->createResponse($rs,200);
     }
 
     /**
@@ -37,19 +65,24 @@ class ProductController extends Controller
      */
     public function store(Request $request)
     {
-        // $credentials = $request->only([ 'name',
-        // 'branch',
-        // 'description',
-        // 'slug']);
         $validated = $request->validate([
             'name' => 'required|max:200',
-            'branch' => 'required|max:50',
+            'brand' => 'required|max:50',
             'description'=>'required',
-            'slug'=>'required|max:255|unique:products'
+            'slug'=>'required|max:255|unique:products',
+            'tags'=>'array|min:1',
+            'tags.*.id'=>'int|exists:tags,id',
+            // 'pictures' => 'min:1|array|required',      
+            // 'pictures.*' => 'image',     
+            // 'colors'=> 'required|array',
+            // 'colors.*.id' => 'int|required|exists:colors,id|distinct',            
+            // 'colors.*.picture' => 'int|required|distinct',
+            // 'colors.*.regular_price' => 'numeric|required|regex:/^\d+(\.\d{1,2})?$/',
+            // 'colors.*.quantity' => 'int|required',
+            // 'colors.*.active' => 'boolean|required',
         ]);
-        $rs = Product::create(['name'=>$request['name'], 'branch'=>$request['branch'], 
-        'description'=>$request['description'], 'slug'=>$request['slug']]);
-        return  SuccessEntityResponse::createResponse($rs,220);
+        $rs = $this->productRepo->createProduct($request->all());
+        return  $this->successEntityResponse->createResponse($rs,200);
     }
 
     /**
@@ -60,9 +93,12 @@ class ProductController extends Controller
      */
     public function show(Request $request,$id)
     {
-        $product = $this->product_repo->findOrFail($id);
-        // if(!$product) return ErrorResponse::createResponse('not found');
-        return SuccessEntityResponse::createResponse($product);
+        $validated = $request->validate([
+            'includes' => 'array|max:5',
+            'includes.*'=>'in:tag,detail,all,picture,sale'
+        ]);
+        $rs = $this->productRepo->showProduct($request->all(),$id);
+        return $this->successEntityResponse->createResponse($rs);
     }
 
     /**
@@ -74,9 +110,18 @@ class ProductController extends Controller
      */
     public function update(Request $request, $id)
     {
-        //
+        echo $request->has('tags') ? 'co' : 'ko'; 
+        $request->validate([
+            'name' => 'string|max:200',
+            'brand' => 'string|max:50',
+            'description'=>'string',
+            'slug'=>'string|max:255|unique:products,slug,'.$request->input('id'),
+            'tags' => 'array',
+            'tags.*.id' => 'int|exists:tags,id'
+        ]);
+        $product = $this->productRepo->updateProduct($request->all(),$id);
+        return response()->json(["result"=> "ok"]);
     }
-
     /**
      * Remove the specified resource from storage.
      *
@@ -85,6 +130,14 @@ class ProductController extends Controller
      */
     public function destroy($id)
     {
-        //
+        $product = $this->productRepo->getById($id);
+        if(!$product) throw new ModelNotFoundException('Product not found for id='.$id.'.');
+        $product->delete();
+        return response()->json(["result"=> "ok"]);
     }
+    public function restoreAll(){
+        $product = $this->productRepo->restoreAll();
+        return response()->json(["result"=> "ok"]);
+    }
+   
 }
